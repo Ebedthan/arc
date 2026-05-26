@@ -2,19 +2,18 @@
 name = "arc"
 version = "0.1.0"
 authors = ["Anicet Ebou <anicet.ebou@gmail.com>"]
-edition = "2018"
-exclude = ["tests/*", ".github/*", ".cargo/*"]
+edition = "2021"
 description = "arc is a fast archive converter"
 homepage = "https://github.com/Ebedthan/arc"
 readme = "README.md"
 license = "MIT"
 categories = ["command-line-utilities"]
-keywords = ["archive converter"] 
+keywords = ["archive converter"]
 
 [dependencies]
-anyhow        = "1.0.40"
+anyhow        = "1.0.102"
 chrono        = "0.4"
-clap          = "~2.33"
+clap          = { version = "4.6", features = ["derive"] }
 exitcode      = "1.1.2"
 fern          = "0.5"
 log           = "0.4"
@@ -25,15 +24,15 @@ thiserror     = "1.0"
 
 [dev-dependencies]
 criterion     = "0.3"
-tempfile      = "3"
+tempfile      = "3.27"
 
 [profile.release]
-opt-level       = 3
-debug           = true
+opt-level = 3
+debug = true
 overflow-checks = false
-lto             = 'thin'
-panic           = 'abort'
-incremental     = false
+lto = 'thin'
+panic = 'abort'
+incremental = false
 
 [[bin]]
 name = "arc"

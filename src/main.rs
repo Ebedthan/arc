@@ -1,8 +1,4 @@
-extern crate anyhow;
-extern crate log;
-extern crate rayon;
-
-mod app;
+mod cli;
 mod error;
 mod utils;
 
@@ -70,15 +66,19 @@ fn main() -> Result<()> {
 
     info!("Done decompressing");
 
-    let compressed_filename = Path::new(format!("{:?}.{}", file_stem, filetype));
+    let compressed_filename =
+        Path::new(format!("{:?}.{}", file_stem, filetype));
     let out_compression = utils::to_niffler_format(filetype)?;
     rayon::scope(|scope| {
         let mut fd = File::create(compressed_filename).unwrap();
-        let mut out_writer = get_writer(Box::new(fd), out_compression, niffler_level);
+        let mut out_writer =
+            get_writer(Box::new(fd), out_compression, niffler_level);
         let mut s = Vec::with_capacity(CHUNK_SIZE);
 
         loop {
-            &fd.take((CHUNK_SIZE - s.len()) as u64).read_to_end(&mut s).unwrap();
+            &fd.take((CHUNK_SIZE - s.len()) as u64)
+                .read_to_end(&mut s)
+                .unwrap();
 
             if s.len() == 0 {
                 break;
