@@ -131,7 +131,6 @@ arc <INPUT> <OUTPUT> [OPTIONS]
 | `-j`, `--threads <N>` | `1` | Threads to use; `0` = all available cores |
 | `-k`, `--keep` | off | Keep the input file after conversion |
 | `-f`, `--force` | off | Overwrite the output file if it already exists |
-| `-v`, `--verbose` | off | Increase log verbosity (repeat for more: `-vvv`) |
 
 ### Examples
 
@@ -149,7 +148,9 @@ arc logs.bz2 logs.gz --level 1 --keep
 arc archive.xz archive.zst --force
 ```
 
-## arc benchmark results
+## arc benchmark
+
+This a simple benchmark to help the user into choosing the right compression format and level for their use case. It is not a comprehensive benchmark, but it should give a good indication of the performance of each compression format.
 
 **Date:** 2026-05-27 17:35
 **Host:** Linux 6.17.0-29-generic x86_64
