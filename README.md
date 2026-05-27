@@ -149,7 +149,144 @@ arc logs.bz2 logs.gz --level 1 --keep
 arc archive.xz archive.zst --force
 ```
 
----
+## arc benchmark results
+
+**Date:** 2026-05-27 17:35
+**Host:** Linux 6.17.0-29-generic x86_64
+**Cores:** 8 logical cores
+**arc:** arc 0.1.0
+**hyperfine:** hyperfine 1.20.0
+**Backends:** pigz pigz 2.8, pbzip2 Parallel BZIP2 v1.1.13 [Dec 18, 2015], xz xz (XZ Utils) 5.4.5, zstd *** Zstandard CLI (64-bit) v1.5.5, by Yann Collet ***
+
+Warmup runs: 1 | Timed runs: 5
+
+
+### Input: `linux.tar.gz` - Linux kernel tarball (~1.4 GB uncompressed, source code) (227M compressed)
+
+#### 1. Format comparison (single-threaded, level 6)
+
+| Command | Mean [s] | Min [s] | Max [s] | Relative |
+|:---|---:|---:|---:|---:|
+| `gz  => bz2` | 44.524 ± 2.021 | 41.166 | 46.628 | 1.00 |
+| `gz  => xz` | 741.807 ± 1.843 | 739.385 | 744.021 | 16.66 ± 0.76 |
+| `gz  => zst` | 72.989 ± 0.196 | 72.784 | 73.275 | 1.64 ± 0.07 |
+
+#### 2. Parallelism scaling (gz => zst, level 6)
+
+| Command | Mean [s] | Min [s] | Max [s] | Relative |
+|:---|---:|---:|---:|---:|
+| `j=1` | 62.430 ± 9.931 | 54.024 | 73.315 | 2.46 ± 0.40 |
+| `j=2` | 35.163 ± 0.489 | 34.510 | 35.737 | 1.38 ± 0.04 |
+| `j=4` | 25.419 ± 0.648 | 24.863 | 26.475 | 1.00 |
+| `j=all (8)` | 25.737 ± 0.547 | 24.996 | 26.293 | 1.01 ± 0.03 |
+
+#### 3. Level comparison (gz => zst, all cores)
+
+| Command | Mean [s] | Min [s] | Max [s] | Relative |
+|:---|---:|---:|---:|---:|
+| `level 1 (fastest)` | 5.381 ± 0.371 | 5.039 | 5.966 | 1.00 |
+| `level 3` | 8.851 ± 0.547 | 8.327 | 9.631 | 1.64 ± 0.15 |
+| `level 6 (default)` | 26.291 ± 0.789 | 25.082 | 27.124 | 4.89 ± 0.37 |
+| `level 9 (smallest)` | 290.657 ± 2.526 | 287.223 | 292.639 | 54.01 ± 3.75 |
+
+#### 4. Output sizes (level 6, single-threaded)
+
+| Format | Compressed size | Ratio vs input |
+|--------|----------------|----------------|
+| .gz (input) | 227M | 1.00x (baseline) |
+| .bz2 | 175M | 0.77x |
+| .xz | 138M | 0.61x |
+| .zst | 165M | 0.73x |
+
+
+### Input: `silesia.tar.gz` (Silesia corpus (~211 MB uncompressed, mixed content) (66M compressed))
+
+#### 1. Format comparison (single-threaded, level 6)
+
+| Command | Mean [s] | Min [s] | Max [s] | Relative |
+|:---|---:|---:|---:|---:|
+| `gz  => bz2` | 5.788 ± 0.449 | 5.443 | 6.291 | 1.00 |
+| `gz  => xz` | 99.729 ± 0.511 | 99.021 | 100.341 | 17.23 ± 1.34 |
+| `gz  => zst` | 11.662 ± 0.244 | 11.239 | 11.873 | 2.01 ± 0.16 |
+
+#### 2. Parallelism scaling (gz => zst, level 6)
+
+| Command | Mean [s] | Min [s] | Max [s] | Relative |
+|:---|---:|---:|---:|---:|
+| `j=1` | 11.890 ± 0.318 | 11.605 | 12.285 | 2.15 ± 0.16 |
+| `j=2` | 7.296 ± 0.392 | 6.676 | 7.695 | 1.32 ± 0.12 |
+| `j=4` | 5.536 ± 0.397 | 5.085 | 5.914 | 1.00 |
+| `j=all (8)` | 5.829 ± 0.108 | 5.642 | 5.896 | 1.05 ± 0.08 |
+
+#### 3. Level comparison (gz => zst, all cores)
+
+| Command | Mean [s] | Min [s] | Max [s] | Relative |
+|:---|---:|---:|---:|---:|
+| `level 1 (fastest)` | 1.165 ± 0.130 | 0.993 | 1.334 | 1.00 |
+| `level 3` | 1.903 ± 0.208 | 1.640 | 2.175 | 1.63 ± 0.25 |
+| `level 6 (default)` | 5.976 ± 0.226 | 5.645 | 6.247 | 5.13 ± 0.60 |
+| `level 9 (smallest)` | 46.159 ± 1.584 | 43.612 | 47.818 | 39.63 ± 4.61 |
+
+#### 4. Output sizes (level 6, single-threaded)
+
+| Format | Compressed size | Ratio vs input |
+|--------|----------------|----------------|
+| .gz (input) | 66M | 1.00x (baseline) |
+| .bz2 | 54M | 0.82x |
+| .xz | 47M | 0.72x |
+| .zst | 56M | 0.85x |
+
+
+### Input: `random.bin.gz` (Random binary data (512 MB, incompressible) (513M compressed))
+
+#### 1. Format comparison (single-threaded, level 6)
+
+| Command | Mean [s] | Min [s] | Max [s] | Relative |
+|:---|---:|---:|---:|---:|
+| `gz  => bz2` | 22.304 ± 0.514 | 21.760 | 23.146 | 6.14 ± 0.17 |
+| `gz  => xz` | 264.834 ± 0.602 | 263.864 | 265.515 | 72.94 ± 1.19 |
+| `gz  => zst` | 3.631 ± 0.059 | 3.558 | 3.715 | 1.00 |
+
+#### 2. Parallelism scaling (gz => zst, level 6)
+
+| Command | Mean [s] | Min [s] | Max [s] | Relative |
+|:---|---:|---:|---:|---:|
+| `j=1` | 3.543 ± 0.133 | 3.322 | 3.661 | 1.94 ± 0.10 |
+| `j=2` | 2.443 ± 0.015 | 2.419 | 2.455 | 1.34 ± 0.05 |
+| `j=4` | 1.831 ± 0.101 | 1.664 | 1.933 | 1.01 ± 0.06 |
+| `j=all (8)` | 1.822 ± 0.061 | 1.753 | 1.910 | 1.00 |
+
+#### 3. Level comparison (gz => zst, all cores)
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `level 1 (fastest)` | 897.9 ± 27.6 | 869.8 | 933.0 | 1.00 |
+| `level 3` | 989.0 ± 14.5 | 972.0 | 1011.5 | 1.10 ± 0.04 |
+| `level 6 (default)` | 1729.0 ± 77.0 | 1592.2 | 1776.1 | 1.93 ± 0.10 |
+| `level 9 (smallest)` | 49363.8 ± 250.9 | 49052.1 | 49717.9 | 54.98 ± 1.71 |
+
+#### 4. Output sizes (level 6, single-threaded)
+
+| Format | Compressed size | Ratio vs input |
+|--------|----------------|----------------|
+| .gz (input) | 513M | 1.00x (baseline) |
+| .bz2 | 515M | 1.01x |
+| .xz | 513M | 1.00x |
+| .zst | 513M | 1.00x |
+
+
+### Methodology
+
+- Each timed command was run **10 times** after **3 warmup runs** to reduce
+  cold-cache and scheduler noise.
+- hyperfine reports the **mean ± standard deviation** across timed runs.
+- All conversions use `-k` (keep input) and `-f` (force overwrite) so the
+  input file survives the full benchmark and hyperfine can repeat each run.
+- Output files are written to a temporary directory; results reflect wall-clock
+  time including process spawn overhead, which is negligible for large files.
+- "Ratio vs input" compares the output byte count to the **original .gz input**
+  size, not the uncompressed size, so values above 1.0x mean the target
+  format is larger than gzip at level 6.
 
 ## Notes
 
@@ -174,8 +311,6 @@ arc is intentionally limited to recompression of a fixed archive stream.
 [dependencies]
 anyhow  = "1"
 clap    = { version = "4.6", features = ["derive"] }
-fern    = "0.7"
-log     = "0.4"
 which   = "7"
 ```
 
