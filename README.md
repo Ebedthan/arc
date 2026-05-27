@@ -152,12 +152,12 @@ arc archive.xz archive.zst --force
 
 This a simple benchmark to help the user into choosing the right compression format and level for their use case. It is not a comprehensive benchmark, but it should give a good indication of the performance of each compression format.
 
-**Date:** 2026-05-27 17:35
-**Host:** Linux 6.17.0-29-generic x86_64
-**Cores:** 8 logical cores
-**arc:** arc 0.1.0
-**hyperfine:** hyperfine 1.20.0
-**Backends:** pigz pigz 2.8, pbzip2 Parallel BZIP2 v1.1.13 [Dec 18, 2015], xz xz (XZ Utils) 5.4.5, zstd *** Zstandard CLI (64-bit) v1.5.5, by Yann Collet ***
+**Date:** 2026-05-27 17:35  
+**Host:** Linux 6.17.0-29-generic x86_64  
+**Cores:** 8 logical cores  
+**arc:** arc 0.1.0  
+**hyperfine:** hyperfine 1.20.0  
+**Backends:** pigz pigz 2.8, pbzip2 Parallel BZIP2 v1.1.13 [Dec 18, 2015], xz xz (XZ Utils) 5.4.5, zstd **Zstandard CLI (64-bit) v1.5.5, by Yann Collet**
 
 Warmup runs: 1 | Timed runs: 5
 
