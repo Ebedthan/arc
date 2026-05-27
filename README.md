@@ -10,6 +10,40 @@ Instead of remembering the right flags for each tool and writing the pipe
 yourself, arc figures out the formats from the file extensions, picks the
 fastest available backend, and streams the conversion in one pass.
 
+## Why not just use a pipe?
+ 
+You can. This works perfectly:
+ 
+```sh
+gzip -dc archive.tar.gz | xz -c > archive.tar.xz
+```
+ 
+So does this:
+ 
+```sh
+pigz -dc archive.tar.gz | zstd -T0 -9 -c > archive.tar.zst
+```
+ 
+And this, if you remembered that pbzip2 takes `-p` not `-T`, that zstd levels
+go to 19 not 9, that gzip's decompression flag is `-d` not `-D`, and that the
+output redirection goes *after* the last pipe segment and not before it:
+ 
+```sh
+pbzip2 -dc -p8 archive.tar.bz2 | zstd -T8 -14 -c > archive.tar.zst
+```
+ 
+arc does not make compression faster. It does not invent new formats. It just
+remembers all of that for you:
+ 
+```sh
+arc archive.tar.bz2 archive.tar.zst -j8 -l9
+```
+ 
+That's it. Formats from the extensions. Parallel backends picked automatically.
+Level scale normalised. Input file removed on success, like every other
+compression tool you already use.
+ 
+The pipe is always there if you want it. arc is for the days you don't :).
 
 ## How it works
 
@@ -140,8 +174,6 @@ fern    = "0.7"
 log     = "0.4"
 which   = "7"
 ```
-
----
 
 ## License
 
