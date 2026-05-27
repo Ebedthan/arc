@@ -9,9 +9,7 @@ use anyhow::{bail, Context, Result};
 use clap::Parser;
 
 use cli::{Cli, Format};
-use utils::{
-    resolve_backend, resolve_threads, setup_logging, spawn_compressor, spawn_decompressor, Role,
-};
+use utils::{resolve_backend, resolve_threads, spawn_compressor, spawn_decompressor, Role};
 
 fn main() {
     // Delegate to `run` so we can use `?` throughout, then handle the error
@@ -24,9 +22,6 @@ fn main() {
 
 fn run() -> Result<()> {
     let cli = Cli::parse();
-
-    // Logging
-    setup_logging(cli.verbose)?;
 
     // Validate input path
     if !cli.input.exists() {
@@ -42,10 +37,17 @@ fn run() -> Result<()> {
 
     // Infer formats
     let in_fmt = Format::from_path(&cli.input).with_context(|| {
+        let extra = if cli.input.extension().and_then(|e| e.to_str()) == Some("tar") {
+            "\nNote: arc converts between compression formats. It cannot compress a raw .tar.\n\
+             To compress it for the first time for e.g.: gzip -c FILE.tar > FILE.tar.gz"
+        } else {
+            ""
+        };
         format!(
             "Unrecognised input format: {}\n\
-             Supported extensions: .gz  .bz2  .xz  .zst  (also .tar.gz etc.)",
-            cli.input.display()
+             Supported extensions: .gz  .bz2  .xz  .zst  (also .tar.gz etc.){}",
+            cli.input.display(),
+            extra
         )
     })?;
 
@@ -78,16 +80,6 @@ fn run() -> Result<()> {
     let enc_backend = resolve_backend(out_fmt, Role::Compress)?;
 
     let threads = resolve_threads(cli.threads);
-
-    log::info!(
-        "Converting {} => {}  (decompress: {}, compress: {}, level: {}, threads: {})",
-        cli.input.display(),
-        cli.output.display(),
-        dec_backend.name,
-        enc_backend.name,
-        cli.level,
-        threads,
-    );
 
     // Open input file
     let in_file = File::open(&cli.input)
@@ -135,13 +127,8 @@ fn run() -> Result<()> {
     //
     // Both child processes run concurrently; the kernel buffers the pipe
     // between them. We block here until the compressor closes its stdout.
-    let bytes_written = io::copy(&mut enc_stdout, &mut { out_writer })
+    io::copy(&mut enc_stdout, &mut { out_writer })
         .context("I/O error while draining compressor output")?;
-
-    log::debug!(
-        "Wrote {bytes_written} compressed bytes to {}",
-        cli.output.display()
-    );
 
     // Wait for child processes
     //
@@ -176,14 +163,11 @@ fn run() -> Result<()> {
         );
     }
 
-    log::info!("Done: {}", cli.output.display());
-
     // Cleanup
     if !cli.keep {
         if let Err(e) = std::fs::remove_file(&cli.input) {
-            log::warn!(
-                "Conversion succeeded but could not remove input file {}: {e}\n\
-                 You may want to delete it manually.",
+            eprintln!(
+                "arc: warning: could not remove {}: {e}",
                 cli.input.display()
             );
         }

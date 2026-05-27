@@ -56,10 +56,6 @@ pub struct Cli {
     /// Overwrite the output file if it already exists.
     #[arg(short, long)]
     pub force: bool,
-
-    /// Increase log verbosity. Use multiple times for more detail (-v, -vv, -vvv).
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    pub verbose: u8,
 }
 
 /// Compression formats supported by arc.
@@ -89,16 +85,6 @@ impl Format {
             "xz" | "lzma" => Some(Self::Xz),
             "zst" | "zstd" => Some(Self::Zst),
             _ => None,
-        }
-    }
-
-    /// Returns the canonical file extension for this format.
-    pub fn ext(&self) -> &'static str {
-        match self {
-            Self::Gz => "gz",
-            Self::Bz2 => "bz2",
-            Self::Xz => "xz",
-            Self::Zst => "zst",
         }
     }
 
@@ -150,18 +136,6 @@ mod tests {
     }
 
     #[test]
-    fn format_ext_roundtrip() {
-        for fmt in [Format::Gz, Format::Bz2, Format::Xz, Format::Zst] {
-            assert_eq!(
-                Format::from_ext(fmt.ext()),
-                Some(fmt),
-                "ext() → from_ext() roundtrip failed for {:?}",
-                fmt
-            );
-        }
-    }
-
-    #[test]
     fn cli_parses_basic_invocation() {
         let cli = Cli::try_parse_from(["arc", "file.tar.gz", "file.tar.zst"]).unwrap();
         assert_eq!(cli.input, PathBuf::from("file.tar.gz"));
@@ -184,14 +158,12 @@ mod tests {
             "0",
             "--keep",
             "--force",
-            "-vvv",
         ])
         .unwrap();
         assert_eq!(cli.level, 9);
         assert_eq!(cli.threads, 0);
         assert!(cli.keep);
         assert!(cli.force);
-        assert_eq!(cli.verbose, 3);
     }
 
     #[test]

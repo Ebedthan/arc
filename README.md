@@ -1,5 +1,9 @@
 # arc
 
+[![CI](https://github.com/Ebedthan/arc/actions/workflows/ci.yml/badge.svg)](https://github.com/Ebedthan/arc/actions/workflows/ci.yml)
+[![CD](https://github.com/Ebedthan/arc/actions/workflows/cd.yml/badge.svg)](https://github.com/Ebedthan/arc/actions/workflows/cd.yml)
+[![codecov](https://codecov.io/gh/Ebedthan/arc/branch/main/graph/badge.svg)](https://codecov.io/gh/Ebedthan/arc)
+
 Convert between compression formats without a temporary file.
 
 ```
@@ -76,7 +80,7 @@ fully supported, the tar layer passes through untouched.
 ### From source
 
 ```sh
-git clone https://github.com/yourname/arc
+git clone https://github.com/Ebedthan/arc
 cd arc
 cargo build --release
 cp target/release/arc ~/.local/bin/

@@ -185,7 +185,6 @@ pub fn resolve_backend(format: Format, role: Role) -> Result<Backend> {
 
     for &(name, parallel) in candidates {
         if let Ok(path) = which(name) {
-            log::debug!("Resolved backend for {format} ({role:?}): {name} at {path:?}");
             return Ok(Backend {
                 path,
                 name,
@@ -317,30 +316,6 @@ fn map_level_to_zstd(level: u8) -> u8 {
     out.clamp(1, 19)
 }
 
-// Logging setup ===============================================================
-
-pub fn setup_logging(verbosity: u8) -> Result<()> {
-    let level = match verbosity {
-        0 => log::LevelFilter::Warn,
-        1 => log::LevelFilter::Info,
-        2 => log::LevelFilter::Debug,
-        _ => log::LevelFilter::Trace,
-    };
-
-    fern::Dispatch::new()
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "[{level}] {target}: {message}",
-                level = record.level(),
-                target = record.target(),
-            ))
-        })
-        .level(level)
-        .chain(std::io::stderr())
-        .apply()
-        .context("Failed to initialise logging")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -355,7 +330,7 @@ mod tests {
     fn zstd_level_mapping_midpoint() {
         // level 5 should land around the middle of zstd's range
         let mid = map_level_to_zstd(5);
-        assert!(mid >= 8 && mid <= 11, "mid={mid}");
+        assert!((8..=11).contains(&mid));
     }
 
     #[test]
