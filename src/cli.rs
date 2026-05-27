@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::path::PathBuf;
 
 use clap::{Parser, ValueEnum};
@@ -75,7 +76,7 @@ impl Format {
     ///
     /// Handles both simple extensions (`.gz`) and compound ones (`.tar.gz`).
     /// Returns `None` if the extension is absent or unrecognised.
-    pub fn from_path(path: &PathBuf) -> Option<Self> {
+    pub fn from_path(path: &Path) -> Option<Self> {
         // Walk extensions from the right so `.tar.gz` => `gz`.
         let ext = path.extension()?.to_str()?;
         Self::from_ext(ext)

@@ -11,20 +11,11 @@ categories = ["command-line-utilities"]
 keywords = ["archive converter"]
 
 [dependencies]
-anyhow        = "1.0.102"
-chrono        = "0.4"
-clap          = { version = "4.6", features = ["derive"] }
-exitcode      = "1.1.2"
-fern          = "0.5"
-log           = "0.4"
-niffler       = "2.3.2"
-rayon         = "1.5"
-tempfile      = "3.2"
-thiserror     = "1.0"
-
-[dev-dependencies]
-criterion     = "0.3"
-tempfile      = "3.27"
+anyhow  = "1"
+clap    = { version = "4.6", features = ["derive"] }
+which   = "7"
+fern    = "0.7"
+log     = "0.4"
 
 [profile.release]
 opt-level = 3
