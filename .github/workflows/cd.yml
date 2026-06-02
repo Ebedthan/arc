@@ -12,38 +12,38 @@ env:
 
 jobs:
   build:
-    name: Build — ${{ matrix.target }}
+    name: Build - ${{ matrix.target }}
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          # ── Linux x86_64 (musl = fully static, no glibc version dependency)
+          # Linux x86_64 (musl = fully static, no glibc version dependency)
           - target: x86_64-unknown-linux-musl
             runner: ubuntu-latest
             archive: tar.gz
 
-          # ── Linux ARM64 (e.g. AWS Graviton, Raspberry Pi 4+)
+          # Linux ARM64 (e.g. AWS Graviton, Raspberry Pi 4+)
           - target: aarch64-unknown-linux-musl
             runner: ubuntu-latest
             archive: tar.gz
 
-          # ── Linux ARMv7 (e.g. Raspberry Pi 2/3)
+          # Linux ARMv7 (e.g. Raspberry Pi 2/3)
           - target: armv7-unknown-linux-musleabihf
             runner: ubuntu-latest
             archive: tar.gz
 
-          # ── macOS Intel
+          # macOS Intel
           - target: x86_64-apple-darwin
             runner: macos-latest
             archive: tar.gz
 
-          # ── macOS Apple Silicon
+          # macOS Apple Silicon
           - target: aarch64-apple-darwin
             runner: macos-latest
             archive: tar.gz
 
-          # ── Windows x86_64
+          # Windows x86_64
           - target: x86_64-pc-windows-msvc
             runner: windows-latest
             archive: zip
