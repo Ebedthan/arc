@@ -6,7 +6,9 @@ use std::io::{self, BufWriter};
 use std::process::Stdio;
 
 use anyhow::{bail, Context, Result};
+use clap::CommandFactory;
 use clap::Parser;
+use clap_complete::generate;
 
 use cli::{Cli, Format};
 use utils::{resolve_backend, resolve_threads, spawn_compressor, spawn_decompressor, Role};
@@ -22,6 +24,11 @@ fn main() {
 
 fn run() -> Result<()> {
     let cli = Cli::parse();
+
+    if let Some(shell) = cli.generate {
+        generate(shell, &mut Cli::command(), "arc", &mut std::io::stdout());
+        return Ok(());
+    }
 
     // Validate input path
     if !cli.input.exists() {

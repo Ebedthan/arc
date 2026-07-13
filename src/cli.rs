@@ -2,6 +2,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use clap::{Parser, ValueEnum};
+use clap_complete::Shell;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -56,6 +57,10 @@ pub struct Cli {
     /// Overwrite the output file if it already exists.
     #[arg(short, long)]
     pub force: bool,
+
+    /// Generate shell completion script and print to stdout
+    #[arg(long, value_name = "SHELL", value_enum)]
+    pub generate: Option<Shell>,
 }
 
 /// Compression formats supported by arc.
