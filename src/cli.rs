@@ -108,16 +108,6 @@ impl Format {
         }
     }
 
-    /// Returns the canonical file extension for this format.
-    pub fn ext(&self) -> &'static str {
-        match self {
-            Self::Gz => "gz",
-            Self::Bz2 => "bz2",
-            Self::Xz => "xz",
-            Self::Zst => "zst",
-        }
-    }
-
     /// Human-readable display name.
     pub fn name(&self) -> &'static str {
         match self {
@@ -162,18 +152,6 @@ mod tests {
     fn format_unknown_extension_returns_none() {
         let p = PathBuf::from("readme.txt");
         assert_eq!(Format::from_path(&p), None);
-    }
-
-    #[test]
-    fn format_ext_roundtrip() {
-        for fmt in [Format::Gz, Format::Bz2, Format::Xz, Format::Zst] {
-            assert_eq!(
-                Format::from_ext(fmt.ext()),
-                Some(fmt),
-                "ext() => from_ext() roundtrip failed for {:?}",
-                fmt
-            );
-        }
     }
 
     #[test]

@@ -2,7 +2,7 @@ mod cli;
 mod utils;
 
 use std::fs::File;
-use std::io::{self, BufWriter};
+use std::io::{self, BufWriter, Write};
 use std::process::Stdio;
 
 use anyhow::{bail, Context, Result};
@@ -43,7 +43,7 @@ fn run() -> Result<()> {
         );
     }
 
-    // Infer formats
+    // Infer input format
     let in_fmt = Format::from_path(&cli.input).with_context(|| {
         let extra = if cli.input.extension().and_then(|e| e.to_str()) == Some("tar") {
             "\nNote: arc converts between compression formats. It cannot compress a raw .tar.\n\
@@ -59,13 +59,27 @@ fn run() -> Result<()> {
         )
     })?;
 
-    let out_fmt = Format::from_path(&cli.output).with_context(|| {
-        format!(
-            "Unrecognised output format: {}\n\
+    // Determine output format
+    // We have two mode, --stdout => write to stdout, format explict
+    // and <OUTPUT> => write to file, format drawn from extension
+    let (out_fmt, destination) = if cli.stdout {
+        let fmt = cli.format.expect("--format required with --stdout");
+        (fmt, Destination::Stdout)
+    } else {
+        let out_path = cli.output.as_ref().with_context(|| {
+            "No output file specified.\n\
+            Provide an output path or use --stdout --format <FMT> to write to stdout."
+        })?;
+
+        let fmt = Format::from_path(out_path).with_context(|| {
+            format!(
+                "Unrecognised output format: {}\n\
              Supported extensions: .gz  .bz2  .xz  .zst  (also .tar.gz etc.)",
-            cli.output.display()
-        )
-    })?;
+                out_path.display()
+            )
+        })?;
+        (fmt, Destination::File(out_path.clone()))
+    };
 
     if in_fmt == out_fmt {
         bail!(
@@ -75,12 +89,14 @@ fn run() -> Result<()> {
     }
 
     // Validate output path
-    if cli.output.exists() && !cli.force {
-        bail!(
-            "Output file already exists: {}\n\
-             Use --force to overwrite.",
-            cli.output.display()
-        );
+    if let Destination::File(ref out_path) = destination {
+        if out_path.exists() && !cli.force {
+            bail!(
+                "Output file already exists: {}\n\
+                 Use --force to overwrite.",
+                out_path.display()
+            );
+        }
     }
 
     // Resolve backends
@@ -92,11 +108,6 @@ fn run() -> Result<()> {
     // Open input file
     let in_file = File::open(&cli.input)
         .with_context(|| format!("Cannot open input file: {}", cli.input.display()))?;
-
-    // Open output file
-    let out_file = File::create(&cli.output)
-        .with_context(|| format!("Cannot create output file: {}", cli.output.display()))?;
-    let out_writer = BufWriter::new(out_file);
 
     // Spawn decompressor
     //
@@ -135,8 +146,20 @@ fn run() -> Result<()> {
     //
     // Both child processes run concurrently; the kernel buffers the pipe
     // between them. We block here until the compressor closes its stdout.
-    io::copy(&mut enc_stdout, &mut { out_writer })
-        .context("I/O error while draining compressor output")?;
+    match destination {
+        Destination::Stdout => {
+            let stdout = io::stdout();
+            let mut out = BufWriter::new(stdout.lock());
+            io::copy(&mut enc_stdout, &mut out).context("I/O error while writing to stdout")?;
+            out.flush().context("Failed to flush stdout")?;
+        }
+        Destination::File(ref out_path) => {
+            let out_file = File::create(out_path)
+                .with_context(|| format!("Cannot create output file: {}", out_path.display()))?;
+            let mut out = BufWriter::new(out_file);
+            io::copy(&mut enc_stdout, &mut out).context("I/O error while writing output file")?;
+        }
+    }
 
     // Wait for child processes
     //
@@ -148,7 +171,9 @@ fn run() -> Result<()> {
 
     if !dec_status.success() {
         // Best-effort: remove the incomplete output file before bailing.
-        let _ = std::fs::remove_file(&cli.output);
+        if let Destination::File(ref out_path) = destination {
+            let _ = std::fs::remove_file(out_path);
+        }
         bail!(
             "Decompressor '{}' failed (exit code {}).\n\
              Check stderr above for details.",
@@ -162,7 +187,9 @@ fn run() -> Result<()> {
         .with_context(|| format!("Failed waiting for compressor '{}'", enc_backend.name))?;
 
     if !enc_status.success() {
-        let _ = std::fs::remove_file(&cli.output);
+        if let Destination::File(ref out_path) = destination {
+            let _ = std::fs::remove_file(out_path);
+        }
         bail!(
             "Compressor '{}' failed (exit code {}).\n\
              Check stderr above for details.",
@@ -182,4 +209,10 @@ fn run() -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Where the compressed output should be written.
+enum Destination {
+    Stdout,
+    File(std::path::PathBuf),
 }
