@@ -25,6 +25,7 @@ fn main() {
 fn run() -> Result<()> {
     let cli = Cli::parse();
 
+    // Generate shell completion script
     if let Some(shell) = cli.generate {
         generate(shell, &mut Cli::command(), "arc", &mut std::io::stdout());
         return Ok(());

@@ -23,7 +23,22 @@ pub struct Cli {
     /// Output file. Target format is inferred from the extension.
     ///
     /// Supported output formats: .gz, .bz2, .xz, .zst
-    pub output: PathBuf,
+    /// Required unless --stdout is specified.
+    pub output: Option<PathBuf>,
+
+    /// Write compressed output to stdout instead of a file.
+    ///
+    /// Requires --format to specify the target compression format,
+    /// Since there is no output filename to infer it from.
+    /// Implies --keep (the input file is never removed in stdout mode).
+    #[arg(short = 'c', long, requires = "format")]
+    pub stdout: bool,
+
+    /// Target compression format for --stdout mode.
+    ///
+    /// Ignored when an output file is provided.
+    #[arg(short = 'F', long, value_enum, value_name = "FORMAT")]
+    pub format: Option<Format>,
 
     /// Compression level (1 = fastest, 9 = smallest output).
     ///
@@ -93,6 +108,16 @@ impl Format {
         }
     }
 
+    /// Returns the canonical file extension for this format.
+    pub fn ext(&self) -> &'static str {
+        match self {
+            Self::Gz => "gz",
+            Self::Bz2 => "bz2",
+            Self::Xz => "xz",
+            Self::Zst => "zst",
+        }
+    }
+
     /// Human-readable display name.
     pub fn name(&self) -> &'static str {
         match self {
@@ -123,7 +148,6 @@ mod tests {
     #[test]
     fn format_from_compound_extension() {
         // PathBuf::extension() returns the last extension component,
-        // so .tar.gz → "gz".
         let p = PathBuf::from("archive.tar.xz");
         assert_eq!(Format::from_path(&p), Some(Format::Xz));
     }
@@ -141,14 +165,41 @@ mod tests {
     }
 
     #[test]
+    fn format_ext_roundtrip() {
+        for fmt in [Format::Gz, Format::Bz2, Format::Xz, Format::Zst] {
+            assert_eq!(
+                Format::from_ext(fmt.ext()),
+                Some(fmt),
+                "ext() => from_ext() roundtrip failed for {:?}",
+                fmt
+            );
+        }
+    }
+
+    #[test]
     fn cli_parses_basic_invocation() {
         let cli = Cli::try_parse_from(["arc", "file.tar.gz", "file.tar.zst"]).unwrap();
         assert_eq!(cli.input, PathBuf::from("file.tar.gz"));
-        assert_eq!(cli.output, PathBuf::from("file.tar.zst"));
+        assert_eq!(cli.output, Some(PathBuf::from("file.tar.zst")));
         assert_eq!(cli.level, 6);
         assert_eq!(cli.threads, 1);
         assert!(!cli.keep);
         assert!(!cli.force);
+        assert!(!cli.stdout);
+    }
+
+    #[test]
+    fn cli_parses_stdout_mode() {
+        let cli =
+            Cli::try_parse_from(["arc", "file.tar.gz", "--stdout", "--format", "zst"]).unwrap();
+        assert!(cli.stdout);
+        assert_eq!(cli.format, Some(Format::Zst));
+        assert!(cli.output.is_none());
+    }
+
+    #[test]
+    fn cli_rejects_stdout_without_format() {
+        assert!(Cli::try_parse_from(["arc", "file.tar.gz", "--stdout"]).is_err());
     }
 
     #[test]
