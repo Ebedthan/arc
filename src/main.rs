@@ -105,6 +105,31 @@ fn run() -> Result<()> {
 
     let threads = resolve_threads(cli.threads);
 
+    // Dry run
+    if cli.dry_run {
+        let dest_label = match destination {
+            Destination::Stdout => "stdout".to_string(),
+            Destination::File(ref p) => p.display().to_string(),
+        };
+        eprintln!("arc dry run - no files will be read or written");
+        eprintln!();
+        eprintln!("  input      : {}", cli.input.display());
+        eprintln!("  output     : {dest_label}");
+        eprintln!("  conversion : {in_fmt} => {out_fmt}");
+        eprintln!(
+            "  decompress : {} (parallel: {})",
+            dec_backend.name, dec_backend.parallel
+        );
+        eprintln!(
+            "  compress   : {} (parallel: {})",
+            enc_backend.name, enc_backend.parallel
+        );
+        eprintln!("  level      : {}", cli.level);
+        eprintln!("  threads    : {threads}");
+        eprintln!("  keep input : {}", cli.keep || cli.stdout);
+        return Ok(());
+    }
+
     // Open input file
     let in_file = File::open(&cli.input)
         .with_context(|| format!("Cannot open input file: {}", cli.input.display()))?;

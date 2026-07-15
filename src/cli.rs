@@ -76,6 +76,14 @@ pub struct Cli {
     /// Generate shell completion script and print to stdout
     #[arg(long, value_name = "SHELL", value_enum)]
     pub generate: Option<Shell>,
+
+    /// Show what would happen without writing any output.
+    ///
+    /// arc will resolve formats, select backends, and validate all paths.
+    /// then print a summary and exit without touching any file.
+    /// Usefull before committing to a slow conversion of a large file.
+    #[arg(long)]
+    pub dry_run: bool,
 }
 
 /// Compression formats supported by arc.
