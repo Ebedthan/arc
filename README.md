@@ -115,38 +115,108 @@ parallel binary needed for those.
 If a required backend is missing, arc will tell you exactly what to install
 and exit cleanly.
 
----
-
-## Usage
-
+### Shell completions
+ 
+arc can generate completion scripts for your shell directly:
+ 
+```sh
+# Bash - add to ~/.bashrc
+arc --generate bash >> ~/.bashrc
+ 
+# Zsh - write to a directory on your $fpath
+arc --generate zsh > ~/.zfunc/_arc
+autoload -Uz compinit && compinit
+ 
+# Fish
+arc --generate fish > ~/.config/fish/completions/arc.fish
+ 
+# Elvish
+arc --generate elvish > ~/.config/elvish/lib/arc.elv
+echo "use arc" >> ~/.config/elvish/rc.elv
+ 
+# PowerShell - add to your $PROFILE
+arc --generate powershell >> $PROFILE
 ```
-arc <INPUT> <OUTPUT> [OPTIONS]
-```
-
+ 
 ### Options
-
+ 
 | Flag | Default | Description |
 |------|---------|-------------|
+| `-o`, `--output <FILE>` | — | Output file for single-file mode (format inferred from extension) |
+| `--to <FORMAT>` | — | Target format for batch mode: `gz`, `bz2`, `xz`, `zst` |
+| `--outdir <DIR>` | — | Directory to write output files into (batch mode, requires `--to`) |
+| `-c`, `--stdout` | off | Write output to stdout (requires `--format`) |
+| `-F`, `--format <FORMAT>` | — | Target format for `--stdout` mode |
 | `-l`, `--level <N>` | `6` | Compression level, 1 (fastest) to 9 (smallest) |
 | `-j`, `--threads <N>` | `1` | Threads to use; `0` = all available cores |
-| `-k`, `--keep` | off | Keep the input file after conversion |
-| `-f`, `--force` | off | Overwrite the output file if it already exists |
-
+| `-k`, `--keep` | off | Keep input files after conversion |
+| `-f`, `--force` | off | Overwrite output files if they already exist |
+| `--dry-run` | off | Show what would happen without writing anything |
+| `--generate <SHELL>` | — | Print shell completion script and exit |
+ 
 ### Examples
-
+ 
+**Single file conversion**
 ```sh
 # Basic conversion
-arc backup.tar.gz backup.tar.xz
-
+arc file.tar.gz --output file.tar.xz
+ 
 # Use all cores, maximum compression
-arc data.gz data.zst --threads 0 --level 9
-
+arc data.gz --output data.zst --threads 0 --level 9
+ 
 # Fast recompression, keep the original
-arc logs.bz2 logs.gz --level 1 --keep
-
+arc logs.bz2 --output logs.gz --level 1 --keep
+ 
 # Overwrite existing output
-arc archive.xz archive.zst --force
+arc archive.xz --output archive.zst --force
 ```
+ 
+**Batch conversion**
+```sh
+# Convert all gz archives in the current directory to zst
+arc *.tar.gz --to zst
+ 
+# Convert to a different directory
+arc *.tar.bz2 --to xz --outdir /backup/xz
+ 
+# Dry run first to see what would happen
+arc *.tar.gz --to zst --dry-run
+ 
+# Batch with all cores, keep originals
+arc *.gz --to zst --threads 0 --keep
+```
+ 
+**Stdout mode**
+```sh
+# Pipe to a remote host
+arc archive.tar.gz --stdout --format zst | ssh host "cat > archive.tar.zst"
+ 
+# Count bytes without writing a file
+arc big.tar.bz2 --stdout --format xz | wc -c
+```
+ 
+**Shell completions**
+```sh
+arc --generate bash >> ~/.bashrc
+```
+ 
+**Dry run**
+```sh
+arc linux.tar.gz --output linux.tar.zst --threads 0 --level 9 --dry-run
+```
+```
+arc dry run - no files will be read or written
+ 
+  input      : linux.tar.gz
+  output     : linux.tar.zst
+  gzip → zstd
+  decompress : pigz (parallel: true)
+  compress   : zstd (parallel: true)
+  level      : 9
+  threads    : 12
+  keep input : false
+```
+ 
 
 ## arc benchmark
 
@@ -290,29 +360,37 @@ Warmup runs: 1 | Timed runs: 5
   format is larger than gzip at level 6.
 
 ## Notes
-
-**arc removes the input file on success** unless `--keep` is passed. This
-mirrors the behaviour of `gzip` and `xz`. If conversion fails for any reason,
-the input file is left untouched and any partial output file is removed.
-
+ 
+**arc removes input files on success** unless `--keep` is passed. This mirrors
+the behaviour of `gzip` and `xz`. If a conversion fails for any reason, the
+input file is left untouched and any partial output file is removed.
+ 
+**In batch mode, all errors are reported before exiting.** arc does not stop at
+the first failure - every file is attempted and all failures are printed
+together so you can fix them in one pass.
+ 
 **Compression levels are normalised across formats.** Level 1 always means
 "fastest, largest output" and level 9 always means "slowest, smallest output",
 regardless of the underlying tool. For zstd, arc maps its 1-9 scale onto
 zstd's native 1-19 range.
-
+ 
+**`--stdout` implies `--keep`.** When writing to stdout there is no persistent
+output file, so arc never removes the input in that mode.
+ 
 **zip / tar conversion is out of scope.** `zip` and `tar` are structurally
-incompatible archive formats, converting between them requires fully
-extracting and repacking all files, which is a different class of operation.
-arc is intentionally limited to recompression of a fixed archive stream.
-
-
+incompatible archive formats - converting between them requires fully extracting
+and repacking all files, which is a different class of operation. arc is
+intentionally limited to recompression of a fixed archive stream.
+ 
 ## Dependencies
-
+ 
 ```toml
 [dependencies]
-anyhow  = "1"
-clap    = { version = "4.6", features = ["derive"] }
-which   = "7"
+anyhow        = "1"
+clap          = { version = "4.6", features = ["derive"] }
+clap_complete = "4.5"
+rayon         = "1"
+which         = "7"
 ```
 
 ## License

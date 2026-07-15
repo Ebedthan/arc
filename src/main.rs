@@ -10,7 +10,7 @@ use clap::CommandFactory;
 use clap::Parser;
 use clap_complete::generate;
 use rayon::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use cli::{Cli, Format};
 use utils::{resolve_backend, resolve_threads, spawn_compressor, spawn_decompressor, Role};
@@ -165,7 +165,7 @@ fn run_single(cli: &Cli, input: &PathBuf, output: Option<&PathBuf>) -> Result<()
     }
 
     // Open input file
-    let in_file = File::open(&input)
+    let in_file = File::open(input)
         .with_context(|| format!("Cannot open input file: {}", input.display()))?;
 
     // Spawn decompressor
@@ -259,7 +259,7 @@ fn run_single(cli: &Cli, input: &PathBuf, output: Option<&PathBuf>) -> Result<()
 
     // Cleanup
     if !cli.keep {
-        if let Err(e) = std::fs::remove_file(&input) {
+        if let Err(e) = std::fs::remove_file(input) {
             eprintln!("arc: warning: could not remove {}: {e}", input.display());
         }
     }
@@ -311,7 +311,7 @@ fn run_batch(cli: &Cli) -> Result<()> {
 ///
 /// linux.tar.gz  --to zst  =>  linux.tar.zst
 /// linux.tar.gz  --to zst --outdir / =>  /linux.tar.zst
-fn output_path_for(input: &PathBuf, fmt: Format, outdir: Option<&PathBuf>) -> PathBuf {
+fn output_path_for(input: &Path, fmt: Format, outdir: Option<&PathBuf>) -> PathBuf {
     // Strip the compression extension, append the new one.
     let stem = input
         .file_stem() // "linux.tar" from "linux.tar.gz"
