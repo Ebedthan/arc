@@ -9,6 +9,8 @@ use anyhow::{bail, Context, Result};
 use clap::CommandFactory;
 use clap::Parser;
 use clap_complete::generate;
+use rayon::prelude::*;
+use std::path::PathBuf;
 
 use cli::{Cli, Format};
 use utils::{resolve_backend, resolve_threads, spawn_compressor, spawn_decompressor, Role};
@@ -31,21 +33,53 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    // Validate input path
-    if !cli.input.exists() {
-        bail!("Input file not found: {}", cli.input.display());
+    // Validate that all inputs exist before starting any conversion
+    for input in &cli.inputs {
+        if !input.exists() {
+            bail!("Input file not found: {}", input.display());
+        }
+        if !input.is_file() {
+            bail!(
+                "Input path is not a regular file: {}\n\
+                arc does not handle directories.",
+                input.display()
+            );
+        }
     }
-    if !cli.input.is_file() {
+
+    // Guard: if multiple inputs are given, --to is required
+    if cli.inputs.len() > 1 && cli.to.is_none() {
         bail!(
-            "Input path is not a regular file: {}\n\
-             arc does not handle directories.",
-            cli.input.display()
+            "Multiple input files given but --to <FORMAT> is missing.\n\
+               Example: arc *.tar.gz --to zst"
         );
     }
 
+    if cli.inputs.len() == 1 && cli.to.is_none() && cli.output.is_none() && !cli.stdout {
+        bail!(
+            "No output specified.\n\
+            Provide an output path, use --to <FORMAT>, or use --stdout --format <FORMAT>."
+        );
+    }
+
+    // Dispatch
+    if cli.inputs.len() > 1 || cli.to.is_some() {
+        run_batch(&cli)
+    } else {
+        run_single(&cli, &cli.inputs[0], cli.output.as_ref())
+    }
+}
+
+/// Where the compressed output should be written.
+enum Destination {
+    Stdout,
+    File(std::path::PathBuf),
+}
+
+fn run_single(cli: &Cli, input: &PathBuf, output: Option<&PathBuf>) -> Result<()> {
     // Infer input format
-    let in_fmt = Format::from_path(&cli.input).with_context(|| {
-        let extra = if cli.input.extension().and_then(|e| e.to_str()) == Some("tar") {
+    let in_fmt = Format::from_path(input).with_context(|| {
+        let extra = if input.extension().and_then(|e| e.to_str()) == Some("tar") {
             "\nNote: arc converts between compression formats. It cannot compress a raw .tar.\n\
              To compress it for the first time for e.g.: gzip -c FILE.tar > FILE.tar.gz"
         } else {
@@ -54,7 +88,7 @@ fn run() -> Result<()> {
         format!(
             "Unrecognised input format: {}\n\
              Supported extensions: .gz  .bz2  .xz  .zst  (also .tar.gz etc.){}",
-            cli.input.display(),
+            input.display(),
             extra
         )
     })?;
@@ -66,7 +100,7 @@ fn run() -> Result<()> {
         let fmt = cli.format.expect("--format required with --stdout");
         (fmt, Destination::Stdout)
     } else {
-        let out_path = cli.output.as_ref().with_context(|| {
+        let out_path = output.with_context(|| {
             "No output file specified.\n\
             Provide an output path or use --stdout --format <FMT> to write to stdout."
         })?;
@@ -78,7 +112,7 @@ fn run() -> Result<()> {
                 out_path.display()
             )
         })?;
-        (fmt, Destination::File(out_path.clone()))
+        (fmt, Destination::File(out_path.to_path_buf()))
     };
 
     if in_fmt == out_fmt {
@@ -113,7 +147,7 @@ fn run() -> Result<()> {
         };
         eprintln!("arc dry run - no files will be read or written");
         eprintln!();
-        eprintln!("  input      : {}", cli.input.display());
+        eprintln!("  input      : {}", input.display());
         eprintln!("  output     : {dest_label}");
         eprintln!("  conversion : {in_fmt} => {out_fmt}");
         eprintln!(
@@ -131,8 +165,8 @@ fn run() -> Result<()> {
     }
 
     // Open input file
-    let in_file = File::open(&cli.input)
-        .with_context(|| format!("Cannot open input file: {}", cli.input.display()))?;
+    let in_file = File::open(&input)
+        .with_context(|| format!("Cannot open input file: {}", input.display()))?;
 
     // Spawn decompressor
     //
@@ -225,19 +259,67 @@ fn run() -> Result<()> {
 
     // Cleanup
     if !cli.keep {
-        if let Err(e) = std::fs::remove_file(&cli.input) {
-            eprintln!(
-                "arc: warning: could not remove {}: {e}",
-                cli.input.display()
-            );
+        if let Err(e) = std::fs::remove_file(&input) {
+            eprintln!("arc: warning: could not remove {}: {e}", input.display());
         }
     }
 
     Ok(())
 }
 
-/// Where the compressed output should be written.
-enum Destination {
-    Stdout,
-    File(std::path::PathBuf),
+fn run_batch(cli: &Cli) -> Result<()> {
+    let out_fmt = cli.to.expect("--to guaranteed present in batch mode");
+
+    // Create --outdir if specified and not present
+    if let Some(ref dir) = cli.outdir {
+        std::fs::create_dir_all(dir)
+            .with_context(|| format!("Cannot create output directory: {}", dir.display()))?;
+    }
+
+    // Collect results: run all conversions in parallel via rayon.
+    // Each conversion is independent, they share no state.
+    let results: Vec<(&PathBuf, Result<()>)> = cli
+        .inputs
+        .par_iter()
+        .map(|input| {
+            let output = output_path_for(input, out_fmt, cli.outdir.as_ref());
+            (input, run_single(cli, input, Some(&output)))
+        })
+        .collect();
+
+    // Report: print all errors, then fail if any conversion failed.
+    let mut failed = 0usize;
+    for (input, result) in &results {
+        if let Err(e) = result {
+            eprintln!("arc: error: {}: {e:#}", input.display());
+            failed += 1;
+        }
+    }
+
+    if failed > 0 {
+        bail!("{failed} of {} conversion(s) failed", cli.inputs.len());
+    }
+
+    Ok(())
+}
+
+/// Derive the output path for a batch input file.
+///
+/// Replaces the compression extension with the target format's extension.
+/// If --outdir is given, places the output file there instead of alongside
+/// the input.
+///
+/// linux.tar.gz  --to zst  =>  linux.tar.zst
+/// linux.tar.gz  --to zst --outdir / =>  /linux.tar.zst
+fn output_path_for(input: &PathBuf, fmt: Format, outdir: Option<&PathBuf>) -> PathBuf {
+    // Strip the compression extension, append the new one.
+    let stem = input
+        .file_stem() // "linux.tar" from "linux.tar.gz"
+        .unwrap_or(input.as_os_str());
+    let new_name = format!("{}.{}", stem.to_string_lossy(), fmt.ext());
+
+    match outdir {
+        Some(dir) => dir.join(new_name),
+        None => input.with_file_name(new_name),
+    }
 }
