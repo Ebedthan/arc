@@ -222,17 +222,17 @@ arc dry run - no files will be read or written
 **Date:** 2026-07-15 13:04
 **Host:** Linux 6.17.0-35-generic x86_64
 **Cores:** 8 logical cores
-**arc:** arc 0.1.0
+**arc:** arc 0.2.0
 **hyperfine:** hyperfine 1.20.0
-**Backends:** pigz pigz 2.8, pbzip2 Parallel BZIP2 v1.1.13 [Dec 18, 2015], xz xz (XZ Utils) 5.4.5, zstd *** Zstandard CLI (64-bit) v1.5.5, by Yann Collet ***
+**Backends:** pigz pigz 2.8, pbzip2 Parallel BZIP2 v1.1.13 [Dec 18, 2015], xz xz (XZ Utils) 5.4.5, zstd **Zstandard CLI (64-bit) v1.5.5, by Yann Collet **
 
 Warmup runs: 3 | Timed runs: 10
 Temporary output directory: `/tmp/arc_bench`
 
 
-## Input: `linux.tar.gz` — Linux kernel tarball (~1.4 GB uncompressed, source code) (227M compressed)
+## Input: `linux.tar.gz`: Linux kernel tarball (~1.4 GB uncompressed, source code) (227M compressed)
 
-### 1. Format comparison — single-threaded, level 6
+### 1. Format comparison: single-threaded, level 6
 
 | Command | Mean [s] | Min [s] | Max [s] | Relative |
 |:---|---:|---:|---:|---:|
@@ -240,7 +240,7 @@ Temporary output directory: `/tmp/arc_bench`
 | `gz  → xz` | 461.899 ± 2.465 | 458.522 | 466.361 | 12.43 ± 0.36 |
 | `gz  → zst` | 52.506 ± 0.568 | 51.883 | 53.378 | 1.41 ± 0.04 |
 
-### 2. Parallelism scaling — gz → zst, level 6
+### 2. Parallelism scaling: gz => zst, level 6
 
 | Command | Mean [s] | Min [s] | Max [s] | Relative |
 |:---|---:|---:|---:|---:|
@@ -249,7 +249,7 @@ Temporary output directory: `/tmp/arc_bench`
 | `j=4` | 24.407 ± 1.135 | 22.926 | 25.870 | 1.00 |
 | `j=all (8)` | 26.493 ± 0.521 | 25.803 | 27.273 | 1.09 ± 0.05 |
 
-### 3. Level comparison — gz → zst, all cores
+### 3. Level comparison: gz => zst, all cores
 
 | Command | Mean [s] | Min [s] | Max [s] | Relative |
 |:---|---:|---:|---:|---:|
@@ -258,7 +258,7 @@ Temporary output directory: `/tmp/arc_bench`
 | `level 6 (default)` | 26.752 ± 1.708 | 24.542 | 29.771 | 4.77 ± 0.37 |
 | `level 9 (smallest)` | 330.077 ± 4.521 | 322.394 | 336.940 | 58.87 ± 2.73 |
 
-### 4. Output sizes — level 6, single-threaded
+### 4. Output sizes: level 6, single-threaded
 
 | Format | Compressed size | Ratio vs input |
 |--------|----------------|----------------|
@@ -268,9 +268,9 @@ Temporary output directory: `/tmp/arc_bench`
 | .zst | 165M | 0.73x |
 
 
-## Input: `silesia.tar.gz` — Silesia corpus (~211 MB uncompressed, mixed content) (66M compressed)
+## Input: `silesia.tar.gz`: Silesia corpus (~211 MB uncompressed, mixed content) (66M compressed)
 
-### 1. Format comparison — single-threaded, level 6
+### 1. Format comparison: single-threaded, level 6
 
 | Command | Mean [s] | Min [s] | Max [s] | Relative |
 |:---|---:|---:|---:|---:|
@@ -278,7 +278,7 @@ Temporary output directory: `/tmp/arc_bench`
 | `gz  → xz` | 95.094 ± 0.548 | 94.302 | 96.333 | 13.46 ± 0.81 |
 | `gz  → zst` | 12.612 ± 0.105 | 12.457 | 12.749 | 1.78 ± 0.11 |
 
-### 2. Parallelism scaling — gz → zst, level 6
+### 2. Parallelism scaling: gz => zst, level 6
 
 | Command | Mean [s] | Min [s] | Max [s] | Relative |
 |:---|---:|---:|---:|---:|
@@ -287,7 +287,7 @@ Temporary output directory: `/tmp/arc_bench`
 | `j=4` | 6.798 ± 0.274 | 6.325 | 7.198 | 1.01 ± 0.08 |
 | `j=all (8)` | 6.698 ± 0.485 | 5.821 | 7.136 | 1.00 |
 
-### 3. Level comparison — gz → zst, all cores
+### 3. Level comparison: gz => zst, all cores
 
 | Command | Mean [s] | Min [s] | Max [s] | Relative |
 |:---|---:|---:|---:|---:|
@@ -296,7 +296,7 @@ Temporary output directory: `/tmp/arc_bench`
 | `level 6 (default)` | 6.836 ± 0.472 | 5.897 | 7.207 | 5.39 ± 0.56 |
 | `level 9 (smallest)` | 52.784 ± 1.438 | 49.592 | 54.624 | 41.65 ± 3.44 |
 
-### 4. Output sizes — level 6, single-threaded
+### 4. Output sizes: level 6, single-threaded
 
 | Format | Compressed size | Ratio vs input |
 |--------|----------------|----------------|
@@ -306,9 +306,9 @@ Temporary output directory: `/tmp/arc_bench`
 | .zst | 56M | 0.85x |
 
 
-## Input: `random.bin.gz` — Random binary data (512 MB, incompressible) (513M compressed)
+## Input: `random.bin.gz`: Random binary data (512 MB, incompressible) (513M compressed)
 
-### 1. Format comparison — single-threaded, level 6
+### 1. Format comparison: single-threaded, level 6
 
 | Command | Mean [s] | Min [s] | Max [s] | Relative |
 |:---|---:|---:|---:|---:|
@@ -316,7 +316,7 @@ Temporary output directory: `/tmp/arc_bench`
 | `gz  → xz` | 250.181 ± 4.839 | 244.857 | 256.784 | 71.81 ± 1.50 |
 | `gz  → zst` | 3.484 ± 0.028 | 3.418 | 3.510 | 1.00 |
 
-### 2. Parallelism scaling — gz → zst, level 6
+### 2. Parallelism scaling: gz => zst, level 6
 
 | Command | Mean [s] | Min [s] | Max [s] | Relative |
 |:---|---:|---:|---:|---:|
@@ -325,7 +325,7 @@ Temporary output directory: `/tmp/arc_bench`
 | `j=4` | 1.835 ± 0.047 | 1.771 | 1.907 | 1.05 ± 0.04 |
 | `j=all (8)` | 1.754 ± 0.043 | 1.681 | 1.814 | 1.00 |
 
-### 3. Level comparison — gz → zst, all cores
+### 3. Level comparison: gz => zst, all cores
 
 | Command | Mean [s] | Min [s] | Max [s] | Relative |
 |:---|---:|---:|---:|---:|
@@ -334,7 +334,7 @@ Temporary output directory: `/tmp/arc_bench`
 | `level 6 (default)` | 1.879 ± 0.148 | 1.730 | 2.101 | 1.53 ± 0.67 |
 | `level 9 (smallest)` | 49.140 ± 0.264 | 48.824 | 49.606 | 40.06 ± 17.15 |
 
-### 4. Output sizes — level 6, single-threaded
+### 4. Output sizes: level 6, single-threaded
 
 | Format | Compressed size | Ratio vs input |
 |--------|----------------|----------------|
@@ -344,7 +344,7 @@ Temporary output directory: `/tmp/arc_bench`
 | .zst | 513M | 1.00x |
 
 
-## Batch conversion — all three input files
+## Batch conversion: all three input files
 
 ### 5. Batch mode (--to) vs sequential single-file calls
 
@@ -356,7 +356,7 @@ vs three sequential arc calls. Measures rayon's cross-file parallelism.
 | `sequential (3x arc)` | 39.026 ± 1.049 | 37.083 | 40.127 | 1.00 |
 | `batch (arc --to zst)` | 39.687 ± 0.089 | 39.539 | 39.799 | 1.02 ± 0.03 |
 
-### 6. Batch parallelism scaling — all three files, gz → zst
+### 6. Batch parallelism scaling: all three files, gz => zst
 
 | Command | Mean [s] | Min [s] | Max [s] | Relative |
 |:---|---:|---:|---:|---:|
